@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SkyView - Create Account</title>
+    <script src="https://cdn.jsdelivr.net/npm/aws-amplify@6.0.12/dist/aws-amplify.min.js"></script>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f9f9f9;
+        color: #212121;
+      }
+
+      .container {
+        max-width: 400px;
+        margin: 40px auto;
+        padding: 20px;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+
+      .title {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 8px;
+      }
+
+      .subtitle {
+        font-size: 16px;
+        color: #666666;
+        margin-bottom: 24px;
+      }
+
+      .form-group {
+        margin-bottom: 16px;
+      }
+
+      label {
+        display: block;
+        font-size: 16px;
+        margin-bottom: 4px;
+      }
+
+      input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 16px;
+        box-sizing: border-box;
+      }
+
+      button {
+        width: 100%;
+        padding: 12px;
+        background-color: #2b7da3;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 24px;
+      }
+
+      button:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+      }
+
+      .error {
+        color: #ff3b30;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .success {
+        color: #34c759;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1 class="title">Create Your Account</h1>
+        <p class="subtitle" id="companyLocation"></p>
+      </div>
+
+      <div id="error" class="error" style="display: none"></div>
+      <div id="success" class="success" style="display: none"></div>
+
+      <form id="signupForm" onsubmit="handleSignUp(event)">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" required />
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" required />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" required />
+        </div>
+
+        <button type="submit" id="submitButton">Create Account</button>
+      </form>
+    </div>
+
+    <script>
+      // Configure Amplify
+      const amplifyConfig = {
+        Auth: {
+          region: 'us-east-1', // Replace with your region
+          userPoolId: 'us-east-1_jh8Nwy2cs', // Replace with your User Pool ID
+          userPoolWebClientId: '5oe3sports8l0sj0svpkasje1o', // Replace with your Client ID
+        },
+      };
+
+      AWS.Amplify.configure(amplifyConfig);
+
+      // Get URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const company = urlParams.get('company');
+      const location = urlParams.get('location');
+
+      // Display company and location
+      const companyLocationElement = document.getElementById('companyLocation');
+      if (company && location) {
+        companyLocationElement.textContent = `Company: ${company} | Location: ${location}`;
+      } else {
+        document.getElementById('error').textContent =
+          'Invalid registration link';
+        document.getElementById('error').style.display = 'block';
+        document.getElementById('signupForm').style.display = 'none';
+      }
+
+      async function handleSignUp(event) {
+        event.preventDefault();
+
+        if (!company || !location) {
+          return;
+        }
+
+        const username = document.getElementById('username').value;
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const submitButton = document.getElementById('submitButton');
+        const errorElement = document.getElementById('error');
+        const successElement = document.getElementById('success');
+
+        submitButton.disabled = true;
+        errorElement.style.display = 'none';
+        successElement.style.display = 'none';
+
+        try {
+          const { isSignUpComplete, userId, nextStep } =
+            await AWS.Amplify.Auth.signUp({
+              username,
+              password,
+              attributes: {
+                email,
+                'custom:Company': company,
+                'custom:Location': location,
+              },
+            });
+
+          if (isSignUpComplete) {
+            successElement.textContent =
+              'Registration successful! Please check your email for verification.';
+            successElement.style.display = 'block';
+            document.getElementById('signupForm').reset();
+          }
+        } catch (error) {
+          console.error('Error signing up:', error);
+          errorElement.textContent =
+            error.message || 'Failed to create account. Please try again.';
+          errorElement.style.display = 'block';
+        } finally {
+          submitButton.disabled = false;
+        }
+      }
+    </script>
+  </body>
+</html>
