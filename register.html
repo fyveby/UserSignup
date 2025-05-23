@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SkyView - Create Account</title>
-    <script src="https://cdn.jsdelivr.net/npm/aws-amplify@6.0.12/dist/aws-amplify.min.js"></script>
+
     <style>
       body {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
@@ -101,55 +101,77 @@
       <form id="signupForm" onsubmit="handleSignUp(event)">
         <div class="form-group">
           <label for="username">Username</label>
-          <input type="text" id="username" required />
+          <input type="text" id="username" required value="test" />
         </div>
 
         <div class="form-group">
           <label for="email">Email</label>
-          <input type="email" id="email" required />
+          <input type="email" id="email" required value="test@email.com" />
         </div>
 
         <div class="form-group">
           <label for="password">Password</label>
-          <input type="password" id="password" required />
+          <input type="password" id="password" required value="Qwertyui!1" />
         </div>
 
         <button type="submit" id="submitButton">Create Account</button>
       </form>
     </div>
 
+    <script src="https://cdn.amplify.aws/aws-amplify-v6/aws-amplify.min.js"></script>
+
     <script>
-      // Configure Amplify
-      const amplifyConfig = {
-        Auth: {
-          region: 'us-east-1', // Replace with your region
-          userPoolId: 'us-east-1_jh8Nwy2cs', // Replace with your User Pool ID
-          userPoolWebClientId: '5oe3sports8l0sj0svpkasje1o', // Replace with your Client ID
-        },
-      };
+      // Initialize after Amplify loads
+      function initApp() {
+        // 1. Configure Amplify
+        try {
+          Amplify.configure({
+            Auth: {
+              region: 'us-east-1',
+              userPoolId: 'us-east-1_jh8Nwy2cs',
+              userPoolWebClientId: '5oe3sports8l0sj0svpkasje1o',
+            },
+          });
+        } catch (error) {
+          console.error('Config error:', error);
+          showError('Failed to initialize AWS Amplify');
+          return;
+        }
 
-      AWS.Amplify.configure(amplifyConfig);
+        // 2. Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const company = urlParams.get('company');
+        const location = urlParams.get('location');
 
-      // Get URL parameters
-      const urlParams = new URLSearchParams(window.location.search);
-      const company = urlParams.get('company');
-      const location = urlParams.get('location');
+        if (!company || !location) {
+          showError('Invalid registration link');
+          document.getElementById('signupForm').style.display = 'none';
+          return;
+        }
 
-      // Display company and location
-      const companyLocationElement = document.getElementById('companyLocation');
-      if (company && location) {
-        companyLocationElement.textContent = `Company: ${company} | Location: ${location}`;
-      } else {
-        document.getElementById('error').textContent =
-          'Invalid registration link';
-        document.getElementById('error').style.display = 'block';
-        document.getElementById('signupForm').style.display = 'none';
+        // 3. Update UI
+        document.getElementById(
+          'companyLocation'
+        ).textContent = `Company: ${company} | Location: ${location}`;
+
+        // 4. Store values
+        window.appConfig = { company, location };
+      }
+
+      // Wait for Amplify to load
+      function checkAmplify() {
+        if (typeof Amplify !== 'undefined') {
+          initApp();
+        } else {
+          setTimeout(checkAmplify, 100);
+        }
       }
 
       async function handleSignUp(event) {
         event.preventDefault();
+        const { company, location } = window.appConfig || {};
 
-        if (!company || !location) {
+        if (!company || !companyLocation) {
           return;
         }
 
@@ -166,13 +188,13 @@
 
         try {
           const { isSignUpComplete, userId, nextStep } =
-            await AWS.Amplify.Auth.signUp({
+            await Amplify.Auth.signUp({
               username,
               password,
               attributes: {
                 email,
                 'custom:Company': company,
-                'custom:Location': location,
+                'custom:Location': companyLocation,
               },
             });
 
@@ -191,6 +213,9 @@
           submitButton.disabled = false;
         }
       }
+
+      // Start initialization
+      document.addEventListener('DOMContentLoaded', checkAmplify);
     </script>
   </body>
 </html>
